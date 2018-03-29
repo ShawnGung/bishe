@@ -1,0 +1,1 @@
+bank,house,supermarket,school,hospital|160100,120300,060100,141200,090100

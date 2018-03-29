@@ -1,0 +1,1 @@
+house,supermarket,school,hospital|住宅,商场,学校,医院

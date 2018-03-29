@@ -1,0 +1,5 @@
+bankType percent: 54.88%
+houseType percent: 56.12%
+supermarketType percent: 45.50%
+schoolType percent: 48.75%
+hospitalType percent: 48.12%
