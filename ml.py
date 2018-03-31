@@ -244,7 +244,7 @@ def getCsvIndex(facType):
     leftSampleList = oriIndexList
     leftLabelList.append(facType+'Type') #获取的是分类type
     #leftLabelList.append(facType) #获取的是原来的数据
-    
+
     return leftSampleList,leftLabelList
 
 #获取最好的拟合参数

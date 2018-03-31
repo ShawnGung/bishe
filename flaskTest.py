@@ -31,7 +31,6 @@ app.config.update(
 
 celery = make_celery(app)
 
-
 @app.route('/getCityCenter/',methods=['POST'])
 def getCityCenter():
     if not request.json or 'city' not in request.json:
@@ -42,14 +41,12 @@ def getCityCenter():
     resp = jsonify({'lng':resultJson['lng'],'lat':resultJson['lat']})
     return resp
 
-
 @app.route('/download/',methods=['GET'])
 def download():
     city  = request.args.get('city')
     facType = 'hospital'
     task = downloadCityData.delay(city,facType)
     return jsonify({'task_id':task.id}),202
-
 
 #获取celery中任务执行情况Python
 @app.route('/status/<task_id>')
@@ -63,14 +60,15 @@ def task_status(task_id):
         resp = {'state':"success",'progress':100}
     elif the_task.state == 'PENDING':   # 任务处于排队之中
         resp = {'state':'waitting','progress':0}
-    else:
-        resp = {'state':the_task.state,'progress':the_task.info.get('percent',0)}
+    else:   
+        resp = {'state':the_task.state}
     return jsonify(resp)
 
 
 @celery.task(bind = True)
 def downloadCityData(self,city,facType):
     fI.getCityKNNData(city,facType,self)
+
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0",port=8383,debug=True)

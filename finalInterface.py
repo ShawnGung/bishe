@@ -54,8 +54,9 @@ def getCityCenter(cityName):
 #task 用于更新进度条
 def getCityKNNData(cityName,facType,task = ''):
     path = cityName +'-'+facType+'.json'
-    if os.path.isfile(path): #如果不存在就返回False 
-        with open(path,"r",encoding="UTF-8") as f:
+    pathTmp = cityName +'-'+facType+'Tmp.json'
+    if os.path.isfile('Echarts/'+path): #如果不存在就返回False 
+        with open('Echarts/'+path,"r",encoding="UTF-8") as f:
             for line in f.readlines():
                 List = json.loads(line)
             return List
@@ -87,8 +88,25 @@ def getCityKNNData(cityName,facType,task = ''):
                 content = '('+str(clat)+','+str(clng)+')-('+str(diff)+')'
                 saveInLog(content)
                 List.append({'lng':clng,'lat':clat,'diff':diff,'result':result})
-        with open('Echarts/'+path,"w",encoding="UTF-8") as f:
-            f.write(json.dumps(List))
+
+                load_dict = []
+                if i%50 == 0:#每当存满50个进行存到文件并且释放List
+                    print(os.path.isfile('Echarts/'+pathTmp))
+                    if os.path.isfile('Echarts/'+pathTmp):#如果不存在
+                        with open('Echarts/'+pathTmp,"r") as f:
+                            load_dict = json.load(f)
+                            load_dict.extend(List)
+                    else:
+                        load_dict = List
+                    with open('Echarts/'+pathTmp,"w",encoding="UTF-8") as f:
+                        f.write(json.dumps(load_dict))
+                    List.clear()
+                    List = []
+                    load_dict.clear()
+                    
+        #当搜索完了,我们需要把文件名梗概
+        os.rename('Echarts/'+pathTmp, 'Echarts/'+path)            
+       
         print(cityName +'-'+facType+'的Echarts数据已完成')
 
 #=========================第二个版本=========================================
