@@ -5,6 +5,7 @@ import getLeftPos as glp
 import requests
 import urllib.parse
 import sys
+import math
 import os
 import getPosData as gpd
 import json
@@ -39,19 +40,19 @@ def getCityCenter(cityName):
     url = 'http://restapi.amap.com/v3/config/district?key=' + ak + '&keywords=' + cityName + '&output=json&subdistrict=0&extensions=base'
     jsonData = gpd.get_post_data(url)
     jsonData = json.loads(jsonData)
+    lng,lat = jsonData['districts'][0]['center'].split(',')
     result = {}
-    result['center'] = jsonData['districts'][0]['center']
+    result['lng'] = lng
+    result['lat'] = lat
     return json.dumps(result)
-
-
-
 
 
 #============================================================
 
 #预先抓取完所有的内容并且保存起来,用于Echarts
 #返回一个list
-def getCityKNNData(cityName,facType):
+#task 用于更新进度条
+def getCityKNNData(cityName,facType,task = ''):
     path = cityName +'-'+facType+'.json'
     if os.path.isfile(path): #如果不存在就返回False 
         with open(path,"r",encoding="UTF-8") as f:
@@ -66,8 +67,15 @@ def getCityKNNData(cityName,facType):
         cellRow = int((maxLat-minLat) // (disParam*disLatParamRate))
         cellCol = int((maxLng-minLng) // (disParam*disLngParamRate))
         print((cellRow,cellCol))
+        i = 0
         for row in range(cellRow):
             for col in range(cellCol):
+                i = i + 1
+                if task != '':
+                    percent = i/(cellRow*cellCol)
+                    percent = round(percent,3)
+                    percent = ' percent: {:.2%}'.format(percent)
+                    task.update_state(state='PROGRESS',meta={'percent':percent})
                 coordinate = []
                 clat = round(row*disParam*disLatParamRate+minLat,3)
                 clng = round(col*disParam*disLngParamRate+minLng,3)
