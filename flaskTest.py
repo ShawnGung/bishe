@@ -9,6 +9,11 @@ import pandas as pd
 from celery import Celery
 import pymysql
 from kombu import Exchange, Queue
+
+
+schedule_time = 300
+jsonFilePath = '/Echarts/'
+
 app = Flask(__name__)
 
 CORS(app, supports_credentials=True)
@@ -28,7 +33,7 @@ def make_celery(app):
         'flaskTest.modifySQL': {'queue': 'schedule', 'routing_key': 'queue_1_key'},
          'flaskTest.downloadCityData': {'queue': 'default', 'routing_key': 'queue_2_key'}
     }
-    celery.conf.update(CELERY_QUEUES=queue, CELERY_ROUTES=route)
+    celery.conf.update(CELERY_QUEUES=queue, CELERY_ROUTES=route,CELERYD_MAX_TASKS_PER_CHILD = 40)
 
 
     celery.conf.update(app.config)
@@ -63,11 +68,10 @@ def getCityCenter():
 @app.route('/download/',methods=['GET'])
 def download():
     city  = request.args.get('city')
-    facType = 'hospital'
+    facType  = request.args.get('facType')
     task = downloadCityData.delay(city,facType)
     insertIntoSQL(task.id,'waiting','0%',city,facType)
     return jsonify({'task_id':task.id}),202
-
 
 #获取celery中任务执行情况Python
 @app.route('/status/<task_id>')
@@ -140,11 +144,12 @@ def updateSQL(taskId,progress,percent):
 
 
 #定时任务
+#每5min进行更新
 celery.conf.update(
     CELERYBEAT_SCHEDULE={
         'perminute': {
             'task': 'flaskTest.modifySQL',
-            'schedule': timedelta(seconds=5),
+            'schedule': timedelta(seconds=schedule_time),
             'args': ()
         }
     }
@@ -173,15 +178,14 @@ def modifySQL():
             resp = {'state':the_task.state,'progress':'0%'}
         updateSQL(task_id,resp['state'],resp['progress'])
 
+
+
 @app.route('/update/')
 def showTask():
      # 打开数据库连接
     db = pymysql.connect("localhost","root","a84615814","bishe",charset="utf8" )
-
     #利用pandas 模块导入mysql数据
     dataSet=pd.read_sql('select * from task where isFinished = 0;',db)
-
-
     result = []
     for indexs in dataSet.index: #逐行遍历
         task_id = dataSet.loc[indexs].values[0]
@@ -192,17 +196,36 @@ def showTask():
         facType = dataSet.loc[indexs].values[5]
         dic = {'task_id':task_id,'progress':progress,'percent':percent,'isFinished':str(isFinished),'city':city,'facType':facType}
         result.append(dic)
-
     # 关闭数据库连接
     db.close()
     return json.dumps(result,ensure_ascii=False).encode("utf-8")
+
+
 
 @app.route('/show/')
 def showExitsFile():
     curpath = os.getcwd()
     path = curpath +os.path.sep+ 'Echarts'
     for root, dirs, files in os.walk(path):
-        return files #当前路径下所有非目录子文件 
+        return json.dumps(files,ensure_ascii=False).encode("utf-8") #当前路径下所有非目录子文件 
+
+
+@app.route('/getData/',methods=['POST'])
+def getData():
+    if not request.json:
+        abort(400)
+    curpath = os.getcwd()
+    cityName = request.json['city']
+    facType = request.json['facType']
+    jsonData = []
+    path = curpath+jsonFilePath+cityName+'-'+facType+'.json'
+    if os.path.isfile(path):
+        with open(path,"r",encoding="UTF-8") as f:
+            jsonData = json.load(f)
+        return json.dumps(jsonData,ensure_ascii=False).encode("utf-8")
+    else:
+        return json.dumps(jsonData,ensure_ascii=False).encode("utf-8")
+    
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0",port=8383,debug=True)
+    app.run(host="0.0.0.0",port=8383,debug=False)

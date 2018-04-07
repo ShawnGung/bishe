@@ -9,6 +9,7 @@ import math
 import os
 import getPosData as gpd
 import json
+import gc
 
 KNNnum = ml.KNNnum
 
@@ -88,6 +89,8 @@ def getCityKNNData(cityName,facType,task = ''):
                 content = '('+str(clat)+','+str(clng)+')-('+str(diff)+')'
                 saveInLog(content)
                 List.append({'lng':clng,'lat':clat,'diff':diff,'result':result})
+                del diff
+                del result
 
                 load_dict = []
                 if i%50 == 0:#每当存满50个进行存到文件并且释放List
@@ -101,9 +104,11 @@ def getCityKNNData(cityName,facType,task = ''):
                     with open('Echarts/'+pathTmp,"w",encoding="UTF-8") as f:
                         f.write(json.dumps(load_dict))
                     List.clear()
+                    del List
                     List = []
                     load_dict.clear()
-                    
+                    del load_dict
+            gc.collect()
         #当搜索完了,我们需要把文件名梗概
         os.rename('Echarts/'+pathTmp, 'Echarts/'+path)            
        
@@ -120,6 +125,8 @@ def getKNNDataByOri(facType):
     leftLabelList =temp #直接取原来的数值
     copySam = ori.loc[:,leftSampleList].copy()
     copyRe = ori.loc[:,leftLabelList].copy()
+    del leftSampleList
+    del leftLabelList
     return copySam,copyRe
 
 
@@ -132,6 +139,8 @@ def getKNNByOri(coordinate,facType):
     saveInLog(content)
     dataSet,labels = getKNNDataByOri(facType)
     sampleResult,labelsResult = ml.getKNN(facType,sample,dataSet,labels,KNNnum)
+    del dataSet
+    del labels
     return oriCount,labelsResult
 
 
@@ -405,7 +414,7 @@ def saveInLog(content):
 if __name__ == '__main__':
     #diff,re = getKNNFinal(['24.485','110.397'],'bank')
     try:
-        getCityKNNData('北京市','bank')
+        getCityKNNData('成都市','bank')
         #getCityCenter('北京市')
     except KeyboardInterrupt:
         print("ctr+c中断")
