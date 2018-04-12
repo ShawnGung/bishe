@@ -93,7 +93,7 @@ def getCityKNNData(cityName,facType,task = ''):
                 del result
 
                 load_dict = []
-                if i%50 == 0:#每当存满50个进行存到文件并且释放List
+                if i%50 == 0 or((row == cellRow-1)and(col == cellCol -1)):#每当存满50个进行存到文件并且释放List
                     print(os.path.isfile('Echarts/'+pathTmp))
                     if os.path.isfile('Echarts/'+pathTmp):#如果不存在
                         with open('Echarts/'+pathTmp,"r") as f:

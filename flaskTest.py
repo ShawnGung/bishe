@@ -11,7 +11,7 @@ import pymysql
 from kombu import Exchange, Queue
 
 
-schedule_time = 300
+schedule_time = 30
 jsonFilePath = '/Echarts/'
 
 app = Flask(__name__)
@@ -185,7 +185,7 @@ def showTask():
      # 打开数据库连接
     db = pymysql.connect("localhost","root","a84615814","bishe",charset="utf8" )
     #利用pandas 模块导入mysql数据
-    dataSet=pd.read_sql('select * from task where isFinished = 0;',db)
+    dataSet=pd.read_sql('select * from task where isFinished = 0 order by percent asc;',db)
     result = []
     for indexs in dataSet.index: #逐行遍历
         task_id = dataSet.loc[indexs].values[0]
@@ -207,6 +207,7 @@ def showExitsFile():
     curpath = os.getcwd()
     path = curpath +os.path.sep+ 'Echarts'
     for root, dirs, files in os.walk(path):
+        files.sort()
         return json.dumps(files,ensure_ascii=False).encode("utf-8") #当前路径下所有非目录子文件 
 
 
@@ -223,8 +224,11 @@ def getData():
         with open(path,"r",encoding="UTF-8") as f:
             jsonData = json.load(f)
         return json.dumps(jsonData,ensure_ascii=False).encode("utf-8")
-    else:
-        return json.dumps(jsonData,ensure_ascii=False).encode("utf-8")
+    else:#如果不存在这个文件，进行请求
+        if request.method == "POST":#把第一次option的请求忽略，第二次post才进行添加
+            task = downloadCityData.delay(cityName,facType)
+            insertIntoSQL(task.id,'waiting','0%',cityName,facType)
+            return jsonify({'task_id':task.id}),202
     
 
 if __name__ == '__main__':
